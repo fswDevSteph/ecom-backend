@@ -19,9 +19,22 @@ router.get('/', async (req, res) => {
 });
 
 // get one product
-router.get('/:id', (req, res) => {
+router.get('/:id', async(req, res) => {
   // find a single product by its `id`
   // be sure to include its associated Category and Tag data
+  try { //! find by primary key
+    const product = await Product.findByPk(req.params.id, { //! include associated category and tag data
+      include: [{ model: Category }, { model: Tag, through: ProductTag }], //! include associated category and tag data
+    });
+    if (!product) { //! if no product found
+      res.status(404).json({ message: 'Product not found' }); //! return message
+      return;
+    }
+    res.json(product); //! return product
+  } catch (err) { //! catch error
+    console.error(err);
+    res.status(500).json({ error: 'Failed to retrieve product' });
+  }
 });
 
 // create new product
