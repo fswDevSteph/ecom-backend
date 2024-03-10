@@ -4,27 +4,39 @@ const { Product, Category, Tag, ProductTag } = require('../../models');
 // The `/api/products` endpoint
 
 //? get all products with category and tag data
-router.get('/', async (req, res) => {
-  // find all products
-   try {
-    const products = await Product.findAll({
-      include: [{ model: Category }, { model: Tag, through: ProductTag }],
-    });
-    res.json(products);
-  } catch (err) {
+// router.get('/', async (req, res) => { 
+//   // find all products
+//    try { //! find all products
+//     const products = await Product.findAll({ //! include associated category and tag data
+//       include: [{ model: Category }, { model: Tag /*through: ProductTag */ }],
+//     });
+//     res.json(products); //! return products in json format
+//   } catch (err) {
+//     console.error(err);
+//     res.status(404).json({ error: 'Failed to retrieve products' }); //! 404 issue with routing
+//   }
+//   // be sure to include its associated Category and Tag data
+// });
+
+router.get('/', (req, res) => {
+  //! find all products
+  Product.findAll({ //! include associated category and tag data
+    include: [{ model: Category }, { model: Tag /*through: ProductTag */ }],
+  }).then(products => {
+    res.json(products); //! return products in json format
+  }).catch(err => {
     console.error(err);
-    res.status(500).json({ error: 'Failed to retrieve products' });
-  }
-  // be sure to include its associated Category and Tag data
+    res.status(404).json({ error: 'Failed to retrieve products' }); //! 404 issue with routing
+  })
 });
 
 //? get one product
-router.get('/:id', async(req, res) => {
+router.get('/:id', async (req, res) => {
   // find a single product by its `id`
   // be sure to include its associated Category and Tag data
   try { //! find by primary key
     const product = await Product.findByPk(req.params.id, { //! include associated category and tag data
-      include: [{ model: Category }, { model: Tag, through: ProductTag }], //! include associated category and tag data
+      include: [{ model: Category }, { model: Tag }], //! include associated category and tag data
     });
     if (!product) { //! if no product found
       res.status(404).json({ message: 'Product not found' }); //! return message
@@ -47,7 +59,7 @@ router.post('/', async (req, res) => {
       tagIds: [1, 2, 3, 4]
     }
   */
-try {
+  try {
     // Create a new product using the data from the request body
     const newProduct = await Product.create(req.body);
 
@@ -59,34 +71,34 @@ try {
         tag_id,
       }));
 
-       // Bulk create ProductTag entries to associate tags with the new product
+      // Bulk create ProductTag entries to associate tags with the new product
       await ProductTag.bulkCreate(productTagIdArr);
     }
-} catch (err) {
+  } catch (err) {
     console.log(err);
     res.status(400).json(err);
-}
+  }
 
-Product.create(req.body)
-  .then((product) => {
-    // if there's product tags, we need to create pairings to bulk create in the ProductTag model
-    if (req.body.tagIds.length) {
-      const productTagIdArr = req.body.tagIds.map((tag_id) => {
-        return {
-          product_id: product.id,
-          tag_id,
-        };
-      });
-      return ProductTag.bulkCreate(productTagIdArr);
-    }
-    // if no product tags, just respond
-    res.status(200).json(product);
-  })
-  .then((productTagIds) => res.status(200).json(productTagIds))
-  .catch((err) => {
-    console.log(err);
-    res.status(400).json(err);
-  });
+  Product.create(req.body)
+    .then((product) => {
+      // if there's product tags, we need to create pairings to bulk create in the ProductTag model
+      if (req.body.tagIds.length) {
+        const productTagIdArr = req.body.tagIds.map((tag_id) => {
+          return {
+            product_id: product.id,
+            tag_id,
+          };
+        });
+        return ProductTag.bulkCreate(productTagIdArr);
+      }
+      // if no product tags, just respond
+      res.status(200).json(product);
+    })
+    .then((productTagIds) => res.status(200).json(productTagIds))
+    .catch((err) => {
+      console.log(err);
+      res.status(400).json(err);
+    });
 });
 
 // update product
